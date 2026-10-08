@@ -41,7 +41,7 @@ PERIOD = _alt(
     r"аптасына", r"күніне", r"жумасына", r"күнүнө", r"кунуна", r"haftasiga", r"kuniga",
     r"в\s+неделю", r"в\s+день", r"в\s+сутки", r"за\s+день", r"за\s+неделю", r"per\s+week", r"per\s+day",
     r"a\s+week", r"a\s+day", r"weekly", r"daily", r"ҳар\s+ҳафта", r"ҳар\s+рӯз", r"дар\s+як\s+ҳафта",
-    r"hepdede", r"günde", r"gunde", r"за\s+час", r"в\s+час", r"per\s+hour", r"ҳар\s+соат", r"сағатына", r"саатына",
+    r"hepdede", r"günde", r"gunde", r"kunga", r"haftaga", r"oyiga", r"за\s+час", r"в\s+час", r"per\s+hour", r"ҳар\s+соат", r"сағатына", r"саатына",
 )
 EARN_CLAIM = _alt(
     PERIOD + r"\s*[:\-–]?\s*(?:от\s+|до\s+|from\s+|up\s+to\s+)?" + AMOUNT,
@@ -115,6 +115,9 @@ KEYWORD_RULES: list[tuple[str, int, str]] = [
     ("borrow_scam", WEAK, BORROW),
     ("borrow_scam", WEAK, RETURN_FAST),
     ("borrow_scam", MEDIUM, CARD_PROBLEM),
+    # "a bank card is enough" - the classic dropper lure, in plain words
+    ("dropper", STRONG, r"(?:банковск\w+\s+)?карт\w*\s+(?:болса|болсо)\s+(?:болады|болот|жетеді|жетет|жеткілікті)|(?:bank\s+)?kart\w*\s+bo['`]?lsa\s+(?:bo['`]?ldi|yetadi|kifoya)|kart\w*\s+bolsa\s+(?:ýeterlik|bolýar)|корт\w*\s+дошта\s+бошед|(?:достаточно|нужна\s+только|главное)\s+(?:\w+\s+){0,2}(?:банковск\w+\s+)?карт\w+|(?:only|just)\s+(?:a\s+)?bank\s+card\s+(?:needed|required)|bank\s+card\s+is\s+enough"),
+    ("fake_job", WEAK, r"\bish\s+bor\b|\bjob\s+available\b|работа\s+есть|жұмыс\s+бар|жумуш\s+бар|кор\s+ҳаст|iş\s+bar\b"),
     # "easy money" teasers and huge unrealistic pay (no digits needed: "миллион долларов в день")
     ("fake_job", STRONG, r"(?:тысяч\w*|миллион\w*|млн|миллиард\w*)\s+(?:долларов|доллар\w*|\$|usd|usdt|сом\w*|руб\w*|евро|тенге|тг)\s+(?:в|за)\s+(?:день|сутки|неделю|час)"),
     ("fake_job", STRONG, r"(?:million|thousand)s?\s+(?:dollars|usd|\$)\s+(?:a|per|every)\s+(?:day|week|hour)"),

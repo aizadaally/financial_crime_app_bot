@@ -99,3 +99,14 @@ def test_easy_work_for_students_in_every_language(text):
 @pytest.mark.parametrize("text", ["Студентам скидка 20% в кафе", "Қайырлы таң, жұмыс қалай?", "Работа сегодня была тяжёлая"])
 def test_easy_work_rules_do_not_hit_normal_chat(text):
     assert d.analyze(text).score == 0, text
+
+
+def test_uzbek_card_is_enough_lure_from_user_group():
+    v = d.analyze("Ish bor, kunga 200 dollar, bank kartasi bolsa boldi")
+    assert v.score >= 4 and v.criminal_hit == "dropper", (v.score, v.reasons)
+
+
+def test_card_is_enough_lure_kazakh_and_russian():
+    for t in ["Жұмыс бар, күніне 50 доллар, банк картасы болса болады", "Работа есть, 200 долларов в день, достаточно банковской карты"]:
+        v = d.analyze(t)
+        assert v.score >= 4, (t, v.score, v.reasons)

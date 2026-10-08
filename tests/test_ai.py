@@ -199,3 +199,11 @@ def test_config_requires_key_when_ai_enabled(monkeypatch):
         load_config()
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
     assert load_config().ai_enabled
+
+
+def test_short_money_and_work_messages_reach_the_ai():
+    k = clf(MagicMock())
+    for t in ["easy money", "Ish bor, kunga 200 dollar", "Жұмыс бар", "ақша табу керек пе?", "crypto сигналы"]:
+        assert k.worth_asking(t, [], 0, 4), t
+    for t in ["Привет все", "ok", "Hello, is the road open today?", "Қайырлы таң"]:
+        assert not k.worth_asking(t, [], 0, 4), t
