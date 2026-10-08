@@ -142,3 +142,14 @@ def test_strict_mode_spares_a_warning():
     msg, bot = make_msg("Будьте осторожны: мошенники ищут дропов"), make_bot()
     run(msg, bot, make_cfg(strict_mode=True))
     bot.ban_chat_member.assert_not_awaited()
+
+
+def test_warning_text_needs_higher_score_than_ban_score():
+    for text, expect_ban in (
+        ("В новостях: отмыв денег через крипту, будьте осторожны", False),
+        ("Будьте осторожны, мошенники ищут дропов", False),
+        ("Дети кто хочет крипту и отмыв бабок", True),
+    ):
+        msg, bot = make_msg(text), make_bot()
+        run(msg, bot, make_cfg(ban_score=3, strict_mode=True))
+        assert (bot.ban_chat_member.await_count == 1) == expect_ban, text

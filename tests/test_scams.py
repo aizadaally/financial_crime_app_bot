@@ -77,3 +77,8 @@ def test_messages_from_user_group(name):
                                   "Выезжаю в 8 утра, 700 сом за место"])
 def test_similar_normal_messages_stay_below_ban(text):
     assert not d.analyze(text).is_spam(3), text
+
+
+def test_user_group_message_with_crypto_and_laundering():
+    v = d.analyze("Дети кто хочет крипту и отмыв бабок")
+    assert v.score >= 4 and v.criminal_hit == "laundering", (v.score, v.reasons)

@@ -119,5 +119,8 @@ KEYWORD_RULES: list[tuple[str, int, str]] = [
     ("fake_job", STRONG, r"(?:тысяч\w*|миллион\w*|млн|миллиард\w*)\s+(?:долларов|доллар\w*|\$|usd|usdt|сом\w*|руб\w*|евро|тенге|тг)\s+(?:в|за)\s+(?:день|сутки|неделю|час)"),
     ("fake_job", STRONG, r"(?:million|thousand)s?\s+(?:dollars|usd|\$)\s+(?:a|per|every)\s+(?:day|week|hour)"),
     ("fake_job", MEDIUM, r"хотите\s+(?:\w+\s+){0,3}(?:крипт\w+|бабк\w+|деньг\w+|заработ\w+|миллион\w*)|хочешь\s+(?:\w+\s+){0,3}(?:крипт\w+|бабк\w+|заработ\w+|миллион\w*)|do\s+you\s+want\s+(?:\w+\s+){0,3}(?:crypto|money|to\s+earn|millions?)"),
+    # invitations to join a money scheme: "кто хочет крипту / заработать / бабки"
+    ("fake_job", MEDIUM, r"кто\s+хочет\s+(?:\w+\s+){0,2}(?:крипт\w+|бабк\w+|деньг\w+|заработ\w+|подзаработ\w+|миллион\w*)|кто\s+хочет\s+(?:\w+\s+){0,2}(?:подзаработать|заработать)|who\s+wants\s+(?:\w+\s+){0,2}(?:crypto|money|to\s+earn)"),
+    ("laundering", MEDIUM, r"\bотмыв[аы]?\s+(?:бабок|бабки|денег|деньги|средств|кэша|нала|налички|крипт\w+)|\bобнал[а]?\s+(?:бабок|денег|крипт\w+|кэша)"),
     ("fake_job", MEDIUM, r"л[её]гк\w+\s+(?:работ\w+|заработ\w+|деньг\w+)|easy\s+(?:job|work)"),
 ]

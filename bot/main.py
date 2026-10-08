@@ -75,11 +75,13 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector, cl
     verdict = detector.analyze(text, urls)
     if cfg.log_all:
         log.info("saw message in chat %s from user %s: score=%s", message.chat.id, user.id, verdict.score)
-    rule_ban = verdict.is_spam(cfg.ban_score)
+    # Text that warns about crime (news, advice) needs a clearly higher score before it is punished.
+    warning = is_warning_context(text)
+    rule_ban = verdict.is_spam(cfg.ban_score + (2 if warning else 0))
     if not rule_ban and cfg.strict_mode:
         # Strict: any criminal subject bans, unless the text reads like a warning, news or advice.
         category = verdict.criminal_hit
-        if category and not is_warning_context(text):
+        if category and not warning:
             rule_ban = True
             verdict.reasons.append(f"strict:{category}")
     ask_ai = (
