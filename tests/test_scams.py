@@ -56,3 +56,24 @@ def test_scam_caught(name):
 def test_normal_not_banned(name):
     v = d.analyze(NORMAL[name])
     assert not v.is_spam(T), (name, v.score, v.reasons)
+
+
+# ---- real test messages from the user's group (23:08 and 22:34) ----
+FROM_GROUP = {
+    "crypto-teaser": ("Хотите крипту и бабки миллион долларов в день", 4),
+    "tajik-borrow": ("Салом! Ин хеле таъчил аст. Кортам пул намегирад, 5000 сумро барои 2 соат дода метавонед? Ман онро фавран бармегардонам", 4),
+    "easy-work-hour": ("Легкая работа\nЗа час 500 тысяч тг", 3),
+}
+
+
+@pytest.mark.parametrize("name", FROM_GROUP)
+def test_messages_from_user_group(name):
+    text, minimum = FROM_GROUP[name]
+    v = d.analyze(text)
+    assert v.score >= minimum, (name, v.score, v.reasons)
+
+
+@pytest.mark.parametrize("text", ["Хотите чаю?", "Зарплата 3000 сом в час у них, это нормально?",
+                                  "Выезжаю в 8 утра, 700 сом за место"])
+def test_similar_normal_messages_stay_below_ban(text):
+    assert not d.analyze(text).is_spam(3), text

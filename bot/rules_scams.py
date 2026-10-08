@@ -34,14 +34,14 @@ NO_EXPERIENCE = _alt(
     r"таҷриба\s+(?:лозим\s+нест|даркор\s+нест|талаб\s+намешавад)", r"бе\s+таҷриба", r"бе\s+сармоя",
     r"tejribe\s+(?:gerek\s+däl|talap\s+edilmeýär)", r"tejribesiz", r"goýumsyz",
 )
-_CUR = r"(?:тенге|₸|сом\w*|руб\w*|₽|сум\w*|somoni|сомони|манат\w*|manat|usd|usdt|\$|долл\w*|dollar\w*|som\b|so['`]?m\b|sum\b|rub\b|tenge|eur|€)"
+_CUR = r"(?:тенге|₸|сом\w*|руб\w*|₽|сум\w*|somoni|сомони|манат\w*|manat|usd|usdt|\$|долл\w*|тг\b|dollar\w*|som\b|so['`]?m\b|sum\b|rub\b|tenge|eur|€)"
 _NUM = r"\d[\d\s.,]*\s*(?:мың|тыс\w*|ming|k|к|million|миллион\w*)?"
 AMOUNT = _alt(_NUM + r"\s*" + _CUR, r"[$€₽₸]\s*" + _NUM)
 PERIOD = _alt(
     r"аптасына", r"күніне", r"жумасына", r"күнүнө", r"кунуна", r"haftasiga", r"kuniga",
     r"в\s+неделю", r"в\s+день", r"в\s+сутки", r"за\s+день", r"за\s+неделю", r"per\s+week", r"per\s+day",
     r"a\s+week", r"a\s+day", r"weekly", r"daily", r"ҳар\s+ҳафта", r"ҳар\s+рӯз", r"дар\s+як\s+ҳафта",
-    r"hepdede", r"günde", r"gunde",
+    r"hepdede", r"günde", r"gunde", r"за\s+час", r"в\s+час", r"per\s+hour", r"ҳар\s+соат", r"сағатына", r"саатына",
 )
 EARN_CLAIM = _alt(
     PERIOD + r"\s*[:\-–]?\s*(?:от\s+|до\s+|from\s+|up\s+to\s+)?" + AMOUNT,
@@ -78,7 +78,7 @@ CARD_REQUEST = _alt(
 URGENT = _alt(
     r"быстрее", r"срочно", r"скорее", r"немедленно", r"прямо\s+сейчас", r"urgent\w*", r"asap", r"quick\w*", r"hurry", r"right\s+now",
     r"шұғыл", r"асығыс", r"тезірек", r"шашылыш", r"тезирээк", r"азыр\s+эле", r"shoshilinch", r"tezroq", r"hoziroq",
-    r"таъҷилӣ", r"фаврӣ", r"зудтар", r"gyssagly", r"çalt", r"şuwagt",
+    r"таъҷилӣ", r"таъчил\w*", r"таъҷил\w*", r"фаврӣ", r"фавран", r"зудтар", r"gyssagly", r"çalt", r"şuwagt",
 )
 
 # ------------------------------------------------------------ 3. borrow scam
@@ -94,7 +94,7 @@ RETURN_FAST = _alt(
     r"верну\s+(?:сразу|сейчас|через|скоро|вечером)", r"отдам\s+(?:сразу|сейчас|через|скоро|вечером)",
     r"(?:i\W?ll|will)\s+(?:pay|send|return)\s+(?:you\s+)?back", r"pay\s+you\s+back",
     r"қайтарып\s+беремін", r"қайтарамын", r"кайтарып\s+берем", r"кайтарам",
-    r"qaytarib\s+beraman", r"qaytaraman", r"баргардонам", r"баргардон\w*",
+    r"qaytarib\s+beraman", r"qaytaraman", r"баргардонам", r"баргардон\w*", r"бармегардон\w*",
     r"gaýtaryp\s+bererin", r"gaýtararyn", r"yzyna\s+bererin",
 )
 CARD_PROBLEM = _alt(
@@ -103,7 +103,7 @@ CARD_PROBLEM = _alt(
     r"карта\w*\s+(?:жұмыс\s+істемей|ақша\s+өтпей)", r"ақша\s+өтпей\s+жатыр",
     r"картам\w*\s+(?:акча\s+өтпөй|иштебей)", r"акча\s+өтпөй\s+жатат",
     r"kartam\s+ishlamay", rf"pul\s+o{Q}tmay",
-    r"корт\w*\s+кор\s+намекунад", r"kartym\s+işlemeýär",
+    r"корт\w*\s+кор\s+намекунад", r"корт\w*\s+пул\s+(?:намегирад|намеравад|намегузарад)", r"kartym\s+işlemeýär",
 )
 
 KEYWORD_RULES: list[tuple[str, int, str]] = [
@@ -115,4 +115,9 @@ KEYWORD_RULES: list[tuple[str, int, str]] = [
     ("borrow_scam", WEAK, BORROW),
     ("borrow_scam", WEAK, RETURN_FAST),
     ("borrow_scam", MEDIUM, CARD_PROBLEM),
+    # "easy money" teasers and huge unrealistic pay (no digits needed: "миллион долларов в день")
+    ("fake_job", STRONG, r"(?:тысяч\w*|миллион\w*|млн|миллиард\w*)\s+(?:долларов|доллар\w*|\$|usd|usdt|сом\w*|руб\w*|евро|тенге|тг)\s+(?:в|за)\s+(?:день|сутки|неделю|час)"),
+    ("fake_job", STRONG, r"(?:million|thousand)s?\s+(?:dollars|usd|\$)\s+(?:a|per|every)\s+(?:day|week|hour)"),
+    ("fake_job", MEDIUM, r"хотите\s+(?:\w+\s+){0,3}(?:крипт\w+|бабк\w+|деньг\w+|заработ\w+|миллион\w*)|хочешь\s+(?:\w+\s+){0,3}(?:крипт\w+|бабк\w+|заработ\w+|миллион\w*)|do\s+you\s+want\s+(?:\w+\s+){0,3}(?:crypto|money|to\s+earn|millions?)"),
+    ("fake_job", MEDIUM, r"л[её]гк\w+\s+(?:работ\w+|заработ\w+|деньг\w+)|easy\s+(?:job|work)"),
 ]
