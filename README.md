@@ -13,6 +13,7 @@ whitelisted users are never touched.
 - Invites to join other chats/channels (`t.me/+…`, `joinchat`, `t.me/name`, hidden
   text-link/button URLs) – a link alone scores low, a link plus criminal wording bans
 - English, Russian, Uzbek (Latin+Cyrillic), Kazakh, Kyrgyz, Tajik and Turkmen phrasing (`bot/rules_regional.py`; first-pass wording, tune with real samples)
+- Social-engineering scams in all 7 languages: fake "easy job" offers, requests for card details or SMS codes, urgent "lend me money, my card is not working" messages (`bot/rules_scams.py`)
 - Light obfuscation: spaced letters, zero-width chars, Latin/Cyrillic look-alikes
 
 Rules live in `bot/rules.py`. Add your own without code changes via
