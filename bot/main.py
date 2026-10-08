@@ -67,6 +67,8 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) ->
 
     log.info("%sspam from %s in %s score=%s %s", "[DRY RUN] " if cfg.dry_run else "", user.id, message.chat.id, verdict.score, verdict.reasons)
     if not cfg.dry_run:
+        if cfg.delete_delay:
+            await asyncio.sleep(cfg.delete_delay)  # demo mode: let the message stay visible briefly
         try:
             await message.delete()
         except Exception:

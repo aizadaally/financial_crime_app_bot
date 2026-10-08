@@ -92,3 +92,17 @@ def test_unapproved_chat_is_left_without_moderating():
     bot.leave_chat.assert_awaited_once_with(-555)
     msg.delete.assert_not_awaited()
     bot.ban_chat_member.assert_not_awaited()
+
+
+def test_delete_delay_waits_then_acts(monkeypatch):
+    slept = []
+
+    async def fake_sleep(s):
+        slept.append(s)
+
+    monkeypatch.setattr("bot.main.asyncio.sleep", fake_sleep)
+    msg, bot = make_msg(), make_bot()
+    run(msg, bot, make_cfg(delete_delay=3.0))
+    assert slept == [3.0]
+    msg.delete.assert_awaited_once()
+    bot.ban_chat_member.assert_awaited_once()

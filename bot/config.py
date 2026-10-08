@@ -22,6 +22,7 @@ class Config:
     dry_run: bool
     allowed_chat_ids: set[int]
     log_all: bool = False
+    delete_delay: float = 0.0
 
 
 def load_config() -> Config:
@@ -37,6 +38,7 @@ def load_config() -> Config:
         log_chat_id = int(log_chat) if log_chat else None
         whitelist = {int(x) for x in _csv("WHITELIST_USER_IDS")}
         allowed_chats = {int(x) for x in _csv("ALLOWED_CHAT_IDS")}
+        delete_delay = max(0.0, min(float(os.getenv("DELETE_DELAY_SECONDS", "0") or 0), 30.0))
     except ValueError as e:
         raise SystemExit(f"Invalid number in .env: {e}")
     if ban_score < 1:
@@ -48,6 +50,7 @@ def load_config() -> Config:
         allowed_domains=_csv("ALLOWED_DOMAINS"),
         whitelist_user_ids=whitelist,
         allowed_chat_ids=allowed_chats,
+        delete_delay=delete_delay,
         log_all=os.getenv("LOG_ALL", "").strip().lower() in {"1", "true", "yes", "on"},
         extra_rules_file=os.getenv("EXTRA_RULES_FILE") or None,
         dry_run=os.getenv("DRY_RUN", "").strip().lower() in {"1", "true", "yes", "on"},
