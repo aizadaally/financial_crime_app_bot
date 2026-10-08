@@ -37,3 +37,33 @@ def test_ham_passes(text):
 def test_hidden_link_in_entity():
     v = d.analyze("Заходи, дропы нужны", ["https://t.me/+hiddenInvite1"])
     assert v.is_spam(THRESHOLD)
+
+
+REGIONAL_SPAM = [
+    "Drop kerak! Karta ijaraga olamiz, yopiq kanalga qo'shiling https://t.me/+abc12345",  # uz
+    "Карта ижарага алабыз, дроптор керек, жабык каналга кошулуңуз t.me/+kgchan123",  # ky
+    "Дроп керек, карта жалға аламыз, жабық арнаға қосылыңыз t.me/+kzchan123",  # kk
+    "Дроп лозим, корт ба иҷора, канали пӯшида ҳамроҳ шавед t.me/+tjchan123",  # tg
+    "Drop gerek, kart kärendesine, ýapyk kanala goşulyň t.me/+tmchan123",  # tk
+    "Soxta hujjat va soxta pasport tayyorlaymiz, lichkaga yozing t.me/+uz123456",
+    "Жалған құжат жасаймыз, жеке хабарлама жаз t.me/shadowkz",
+]
+REGIONAL_HAM = [
+    "Bugun kechqurun uchrashamiz, kanalga qo'shiling https://t.me/mygroup",
+    "Бүгүн жыйналыш болот, жазылыңыз",
+    "Мен картамды банкта жаңырттым",
+    "Ертең кездесеміз, қосылыңыз",
+    "Ertir duşuşýarys, goşulyň",
+]
+
+
+@pytest.mark.parametrize("text", REGIONAL_SPAM)
+def test_regional_spam(text):
+    v = d.analyze(text)
+    assert v.is_spam(THRESHOLD), (v.score, v.reasons)
+
+
+@pytest.mark.parametrize("text", REGIONAL_HAM)
+def test_regional_ham(text):
+    v = d.analyze(text)
+    assert not v.is_spam(THRESHOLD), (v.score, v.reasons)

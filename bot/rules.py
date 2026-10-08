@@ -59,3 +59,8 @@ TME_LINK_WEIGHT = 1
 # vice versa, and match both.
 CYR_TO_LAT = str.maketrans("асеорхуіјкмнтв", "aceopxyijkmht" + "b")
 LAT_TO_CYR = str.maketrans("aceopxykmhtb", "асеорхукмнтв")
+
+from .rules_regional import JOIN_CTA_RULES as _RJ, KEYWORD_RULES as _RK  # noqa: E402
+
+KEYWORD_RULES = KEYWORD_RULES + _RK
+JOIN_CTA_RULES = JOIN_CTA_RULES + _RJ

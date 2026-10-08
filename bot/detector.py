@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 from . import rules
 
+_APOSTROPHES = dict.fromkeys(map(ord, "ʻʼ’‘´ʹ"), "'")
 _ZERO_WIDTH = dict.fromkeys(map(ord, "​‌‍⁠﻿­"), None)
 
 
@@ -21,6 +22,8 @@ class Verdict:
 
 def normalize(text: str) -> str:
     text = unicodedata.normalize("NFKC", text).translate(_ZERO_WIDTH).lower()
+    text = text.replace("\u0307", "")  # dotted İ -> i
+    text = text.translate(_APOSTROPHES)
     # "д р о п" / "д.р.о.п" style spacing is collapsed by variants() below.
     return re.sub(r"\s+", " ", text)
 
