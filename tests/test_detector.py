@@ -94,3 +94,12 @@ def test_user_scenarios_spam(text):
 def test_user_scenarios_ham(text):
     v = d.analyze(text)
     assert not v.is_spam(THRESHOLD), (v.score, v.reasons)
+
+
+@pytest.mark.parametrize("text", [
+    "продаю наркоту", "Продаю наркоту", "Продаю наркотики", "продам мефедрон", "Selling cocaine",
+    "Делаю обнал", "Делаю отмыв денег",
+])
+def test_explicit_criminal_offer_bans_alone(text):
+    v = d.analyze(text)
+    assert v.is_spam(THRESHOLD), (v.score, v.reasons)

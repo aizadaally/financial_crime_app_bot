@@ -10,6 +10,7 @@ are checked). Weights add up to a score; see detector.py.
 STRONG = 3
 MEDIUM = 2
 WEAK = 1
+BAN = 4  # explicit offer of a criminal service/goods: enough to ban on its own
 
 KEYWORD_RULES: list[tuple[str, int, str]] = [
     # --- carding / stolen data ---
@@ -35,10 +36,10 @@ KEYWORD_RULES: list[tuple[str, int, str]] = [
     ("easy_money", MEDIUM, r"(гарантированн\w+\s+(доход|прибыль)|удво\w+\s+(депозит|вложени|крипт))"),
     ("easy_money", WEAK, r"заработ\w+\s+от\s+\d+\s*(\$|usd|usdt|руб|₽|тыс)\s*(в\s+(день|сутки|неделю))?"),
     # --- selling drugs (needs an offering verb, so news/discussion text does not match) ---
-    ("drugs", STRONG, r"(продаю|продам|продаём|продаем|куплю|есть\s+в\s+наличии|в\s+наличии|заказывай\w*|доставка|доставлю)\s+(\w+\s+){0,2}(нарк\w+|героин\w*|кокаин\w*|амфетамин\w*|мефедрон\w*|гашиш\w*|марихуан\w*|экстази|лсд|спайс\w*|закладк\w+)"),
-    ("drugs", STRONG, r"\b(selling|sell|buy|for\s+sale)\s+(\w+\s+){0,2}(drugs|cocaine|heroin|mdma|meth|weed|cannabis|fentanyl)\b"),
+    ("drugs", BAN, r"(продаю|продам|продаём|продаем|куплю|есть\s+в\s+наличии|в\s+наличии|заказывай\w*|доставка|доставлю)\s+(\w+\s+){0,2}(нарк\w+|героин\w*|кокаин\w*|амфетамин\w*|мефедрон\w*|гашиш\w*|марихуан\w*|экстази|лсд|спайс\w*|закладк\w+)"),
+    ("drugs", BAN, r"\b(selling|sell|buy|for\s+sale)\s+(\w+\s+){0,2}(drugs|cocaine|heroin|mdma|meth|weed|cannabis|fentanyl)\b"),
     # --- offering laundering / cash-out services ---
-    ("laundering", STRONG, r"(делаю|сделаю|делаем|предлагаю|занимаюсь|оказываю|помогу|помогаем)\s+(\w+\s+){0,3}(отмыв\w*|обнал\w*|легализаци\w+\s+(денег|средств|бабок))"),
+    ("laundering", BAN, r"(делаю|сделаю|делаем|предлагаю|занимаюсь|оказываю|помогу|помогаем)\s+(\w+\s+){0,3}(отмыв\w*|обнал\w*|легализаци\w+\s+(денег|средств|бабок))"),
     # --- "give me your card/account and I pay you" (dropper recruitment, plain wording) ---
     ("dropper", STRONG, r"(дам|дадим|заплачу|заплатим|плачу|платим|получите|получишь)\s+(\w+\s+){0,3}(сом\w*|руб\w*|тенге|сум\w*|долл\w*|usd|usdt|\$|₽|тысяч\w*|миллион\w*)\s+(\w+\s+){0,3}(через|за|на)\s+(вашу|ваш|свою|твою|твой|вашей|ваше)\s+(карт\w+|сч[её]т\w*|аккаунт\w*|кошел\w+)"),
     ("dropper", MEDIUM, r"(через|за)\s+(вашу|ваш|твою|твой)\s+(карт\w+|сч[её]т\w*)\s*[.!]?\s*(\n|$|пиши|пишите|лс|в\s+лс)|кто\s+хочет\s+(дам|заработ\w+)"),
