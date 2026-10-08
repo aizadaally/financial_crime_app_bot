@@ -103,3 +103,31 @@ def test_user_scenarios_ham(text):
 def test_explicit_criminal_offer_bans_alone(text):
     v = d.analyze(text)
     assert v.is_spam(THRESHOLD), (v.score, v.reasons)
+
+
+# ------------------------------------------------------------------ strict mode
+from bot.detector import is_warning_context  # noqa: E402
+
+STRICT_BAN = [
+    "Нужны дропы", "Куплю банковскую карту", "Делаем левые справки", "Нужен человек для обнала",
+    "Пробив по базам", "Drops needed", "Нужны люди с картами для залива",
+]
+STRICT_ALLOW = [
+    "В новостях пишут, что мошенники ищут дропов, будьте осторожны",
+    "Борьба с обналом и дропами в банках Кыргызстана",
+    "Никогда не сообщайте seed phrase никому",
+    "Полиция задержала дропов в Бишкеке",
+    "Привет, как дела?", "Выезжаю в 8 утра, 700 сом",
+]
+
+
+@pytest.mark.parametrize("text", STRICT_BAN)
+def test_strict_catches_single_criminal_signal(text):
+    v = d.analyze(text)
+    assert v.criminal_hit and not is_warning_context(text), (text, v.score, v.reasons)
+
+
+@pytest.mark.parametrize("text", STRICT_ALLOW)
+def test_strict_spares_warnings_and_chat(text):
+    v = d.analyze(text)
+    assert (not v.criminal_hit) or is_warning_context(text), (text, v.reasons)

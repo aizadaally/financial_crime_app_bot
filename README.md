@@ -31,6 +31,9 @@ in all 7 languages. Result: **high confidence → delete + ban**, **medium → d
 If the AI is down, slow, rate-capped or answers badly, the bot silently falls back to rules only.
 Privacy: only the message text is sent (never names or ids); tell your members. See `SECURITY.md`.
 
+## Strict mode
+`STRICT_MODE=true` bans any message whose subject is criminal (one signal is enough), but spares text that reads like a warning, news or advice ("будьте осторожны", "полиция задержала…").
+
 ## Ban, mute or temporary
 `PUNISHMENT=ban` (default) removes the sender; `PUNISHMENT=mute` keeps them in the group but unable to write.
 `PUNISH_MINUTES=60` makes either one lift automatically after an hour. Once a person has been banned, Telegram

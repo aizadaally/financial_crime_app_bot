@@ -129,3 +129,16 @@ def test_default_ban_is_permanent():
     msg, bot = make_msg(), make_bot()
     run(msg, bot, make_cfg())
     assert bot.ban_chat_member.await_args.kwargs["until_date"] is None
+
+
+def test_strict_mode_bans_single_criminal_signal_but_default_does_not():
+    for strict, expect_ban in ((False, False), (True, True)):
+        msg, bot = make_msg("Пробив по базам"), make_bot()  # scores 3: below BAN_SCORE=4
+        run(msg, bot, make_cfg(strict_mode=strict, ban_score=4))
+        assert bot.ban_chat_member.await_count == (1 if expect_ban else 0), strict
+
+
+def test_strict_mode_spares_a_warning():
+    msg, bot = make_msg("Будьте осторожны: мошенники ищут дропов"), make_bot()
+    run(msg, bot, make_cfg(strict_mode=True))
+    bot.ban_chat_member.assert_not_awaited()

@@ -28,6 +28,7 @@ class Config:
     ai_model: str = "claude-opus-5-5"
     ai_max_calls_per_minute: int = 30
     punishment: str = "ban"
+    strict_mode: bool = False
     punish_minutes: int = 0
 
 
@@ -76,6 +77,7 @@ def load_config() -> Config:
         whitelist_user_ids=whitelist,
         allowed_chat_ids=allowed_chats,
         delete_delay=delete_delay,
+        strict_mode=os.getenv("STRICT_MODE", "").strip().lower() in {"1", "true", "yes", "on"},
         punishment=punishment,
         punish_minutes=punish_minutes,
         ai_enabled=ai_enabled,

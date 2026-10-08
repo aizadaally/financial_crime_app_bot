@@ -22,10 +22,41 @@ MAX_PATTERN_LEN = 300
 MAX_RULES_FILE_BYTES = 100_000
 
 
+# Categories whose subject is itself criminal (used by STRICT_MODE). Soft signals such as urgency,
+# join-calls, referral programmes or single fake-job phrases are deliberately not in here.
+CRIMINAL_CATEGORIES = {
+    "carding", "dropper", "fraud", "illegal_goods", "drugs", "laundering", "card_phishing",
+    "wallet_theft", "account_buying", "loan_scam", "impersonation",
+}
+_CRIMINAL_SUFFIXES = ("_dropper", "_fraud")
+
+# Text that talks ABOUT crime (warnings, news, advice) rather than offering it.
+WARNING_CONTEXT = re.compile(
+    r"борьб\w+\s+с|новост|сообщил\w*\s+(?:полиц|мвд)|задержа\w+|арестова\w+|осужд\w+|приговорил|предупреж\w+|"
+    r"осторожн|берегитесь|не\s+(?:сообщайте|говорите|давайте|переводите|делитесь|называйте)|никому\s+не|"
+    r"мошенник\w*\s+(?:звон|просят|пишут|предлага|обманыва)|как\s+(?:защитить|не\s+попасть)|"
+    r"\bbeware\b|\bwarning\b|never\s+share|do\s+not\s+share|scam\s+alert|police\s+(?:arrested|detained)|"
+    r"абайлаңыз|сақ\s+болыңыз|сергек\s+болуңуз|абайлагыла|ehtiyot\s+bo['`]?ling|огоҳ\s+бошед|üns\s+beriň",
+    re.I,
+)
+
+
+def is_warning_context(text: str) -> bool:
+    return bool(WARNING_CONTEXT.search(normalize(text or "")))
+
+
 @dataclass
 class Verdict:
     score: int = 0
     reasons: list[str] = field(default_factory=list)
+    categories: set[str] = field(default_factory=set)
+
+    @property
+    def criminal_hit(self) -> str | None:
+        for c in sorted(self.categories):
+            if c in CRIMINAL_CATEGORIES or c.endswith(_CRIMINAL_SUFFIXES):
+                return c
+        return None
 
     def is_spam(self, threshold: int) -> bool:
         return self.score >= threshold
@@ -113,6 +144,7 @@ class Detector:
                     seen.add((cat, rx.pattern))
                     v.score += weight
                     v.reasons.append(f"{cat}:{m.group(0)[:40]}")
+                    v.categories.add(cat)
                     keyword_hit = True
 
         invite_hit = False

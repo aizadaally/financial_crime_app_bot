@@ -10,7 +10,7 @@ from aiogram.enums import ChatMemberStatus, ChatType
 from aiogram.types import ChatPermissions, LinkPreviewOptions, Message
 
 from .config import Config, load_config
-from .detector import Detector
+from .detector import Detector, is_warning_context
 
 log = logging.getLogger("spambot")
 ADMIN_STATUSES = {ChatMemberStatus.CREATOR, ChatMemberStatus.ADMINISTRATOR}
@@ -76,6 +76,12 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector, cl
     if cfg.log_all:
         log.info("saw message in chat %s from user %s: score=%s", message.chat.id, user.id, verdict.score)
     rule_ban = verdict.is_spam(cfg.ban_score)
+    if not rule_ban and cfg.strict_mode:
+        # Strict: any criminal subject bans, unless the text reads like a warning, news or advice.
+        category = verdict.criminal_hit
+        if category and not is_warning_context(text):
+            rule_ban = True
+            verdict.reasons.append(f"strict:{category}")
     ask_ai = (
         not rule_ban
         and classifier is not None
@@ -153,8 +159,8 @@ async def run() -> None:
         await handle(message, bot, cfg, detector, classifier)
 
     me = await bot.get_me()
-    log.info("Started as @%s | dry_run=%s | ban_score=%s | log_all=%s | ai=%s%s. Waiting for group messages...",
-             me.username, cfg.dry_run, cfg.ban_score, cfg.log_all,
+    log.info("Started as @%s | dry_run=%s | ban_score=%s | log_all=%s | strict=%s | ai=%s%s. Waiting for group messages...",
+             me.username, cfg.dry_run, cfg.ban_score, cfg.log_all, cfg.strict_mode,
              "on" if classifier else "off", f" ({cfg.ai_model}, {cfg.ai_mode})" if classifier else "")
     await dp.start_polling(bot, allowed_updates=["message", "edited_message"])
 
