@@ -21,6 +21,7 @@ class Config:
     extra_rules_file: str | None
     dry_run: bool
     allowed_chat_ids: set[int]
+    log_all: bool = False
 
 
 def load_config() -> Config:
@@ -47,6 +48,7 @@ def load_config() -> Config:
         allowed_domains=_csv("ALLOWED_DOMAINS"),
         whitelist_user_ids=whitelist,
         allowed_chat_ids=allowed_chats,
+        log_all=os.getenv("LOG_ALL", "").strip().lower() in {"1", "true", "yes", "on"},
         extra_rules_file=os.getenv("EXTRA_RULES_FILE") or None,
         dry_run=os.getenv("DRY_RUN", "").strip().lower() in {"1", "true", "yes", "on"},
     )

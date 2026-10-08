@@ -52,6 +52,8 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) ->
 
     text, urls = extract(message)
     verdict = detector.analyze(text, urls)
+    if cfg.log_all:
+        log.info("saw message in chat %s from user %s: score=%s", message.chat.id, user.id, verdict.score)
     if not verdict.is_spam(cfg.ban_score):
         return
 
@@ -103,6 +105,9 @@ async def run() -> None:
     async def _on_message(message: Message) -> None:
         await handle(message, bot, cfg, detector)
 
+    me = await bot.get_me()
+    log.info("Started as @%s | dry_run=%s | ban_score=%s | log_all=%s. Waiting for group messages...",
+             me.username, cfg.dry_run, cfg.ban_score, cfg.log_all)
     await dp.start_polling(bot, allowed_updates=["message", "edited_message"])
 
 
