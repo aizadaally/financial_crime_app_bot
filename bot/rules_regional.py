@@ -6,7 +6,7 @@ local-language phrasing. They are a starting point: send real samples and the
 patterns can be tightened. In Uzbek/Turkmen Latin text, apostrophe variants
 are folded to ' by detector.normalize().
 """
-from .rules import MEDIUM, STRONG, WEAK
+from .rules import BAN, MEDIUM, STRONG, WEAK
 
 A = r"['`]?"  # optional apostrophe (o'z, qo'sh, ...)
 
@@ -51,4 +51,23 @@ JOIN_CTA_RULES: list[tuple[str, int, str]] = [
     ("join_cta", WEAK, r"ҳамроҳ\s+шавед|обуна\s+шавед|(ба\s+)?(шахсӣ|лс)\s+нависед|канали\s+пӯшида|гурӯҳи\s+пӯшида"),
     # Turkmen
     ("join_cta", WEAK, r"(kanala|topara|çata)\s+goşulyň|goşulyň|ýazylyň|(ls|şahsy)\w*\s+ýazyň|ýapyk\s+(kanal|topar|çat)"),
+]
+
+# ---- coverage added after a per-language test: selling drugs, buying cards/accounts, phishing links ----
+KEYWORD_RULES += [
+    # drugs for sale (an explicit offer bans on its own)
+    ("drugs", BAN, r"(есірткі|марихуан\w*|героин\w*|кокаин\w*|гашиш\w*|мефедрон\w*)\s+(сатам\w*|сатамыз|бар\b|жеткізу)"),
+    ("drugs", BAN, r"(баңги\s+зат|бангизат|героин\w*|кокаин\w*|гашиш\w*|мефедрон\w*)\w*\s+(сатам\w*|сатабыз|бар\b|жеткирип)"),
+    ("drugs", BAN, r"(giyohvand\w*|geroin\w*|kokain\w*|geshish\w*|mefedron\w*|narkotik\w*)\s+(sotaman|sotamiz|sotiladi|bor\b|yetkazib)"),
+    ("drugs", BAN, r"(маводи\s+мухаддир|героин\w*|кокаин\w*|гашиш\w*)\s+(мефурӯшам|мефурӯшем|фурӯхта\s+мешавад|ҳаст\b)"),
+    ("drugs", BAN, r"(neşe|neshe|geroin\w*|kokain\w*|haşiş\w*|mefedron\w*)\s+(satýaryn|satýarys|satylýar|bar\b)"),
+    ("drugs", STRONG, r"закладк\w*\s+(бар|бор)\b|zakladka\s+(bor|bar)\b"),
+    # buying / renting bank cards and accounts
+    ("account_buying", STRONG, r"(банк\s+картасын|карталарды|шотты|эсепти|аккаунт\w*)\s+сатып\s+ал\w+"),
+    ("account_buying", STRONG, rf"(bank\s+kartasini|kartalarni|hisob\s+raqam\w*|akkaunt\w*)\s+(sotib\s+ola\w+|ijaraga\s+ola\w+)"),
+    ("account_buying", STRONG, r"(корти\s+бонкӣ|кортҳо\w*|ҳисоб\w*)\s+(мехарем|мехарам|ба\s+иҷора\s+мегирем)"),
+    ("account_buying", STRONG, r"(bank\s+kartyny|kartlary|hasaby|akkaunt\w*)\s+(satyn\s+alýar\w+|kärendesine\s+alýar\w+)"),
+    ("fraud", STRONG, r"\b(fake|forged)\s+(documents?|passports?|ids?|diplomas?|certificates?)\s*(for\s+sale|available|made|service)?|(make|making|sell(?:ing)?)\s+(fake|forged)\s+(documents?|passports?|ids?|diplomas?)"),
+    # "click the link" + account blocked (works with the *_fin rules in rules_financial.py)
+    ("phishing_link", MEDIUM, r"(ссылканы|шилтемени)\s+бас\w*|сілтемені\s+бас\w*|havolani\s+bos\w*|истинодро\s+пахш\s+кун\w*|baglanyşygy\s+bas\w*"),
 ]
