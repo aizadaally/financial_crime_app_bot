@@ -122,5 +122,9 @@ KEYWORD_RULES: list[tuple[str, int, str]] = [
     # invitations to join a money scheme: "кто хочет крипту / заработать / бабки"
     ("fake_job", MEDIUM, r"кто\s+хочет\s+(?:\w+\s+){0,2}(?:крипт\w+|бабк\w+|деньг\w+|заработ\w+|подзаработ\w+|миллион\w*)|кто\s+хочет\s+(?:\w+\s+){0,2}(?:подзаработать|заработать)|who\s+wants\s+(?:\w+\s+){0,2}(?:crypto|money|to\s+earn)"),
     ("laundering", MEDIUM, r"\bотмыв[аы]?\s+(?:бабок|бабки|денег|деньги|средств|кэша|нала|налички|крипт\w+)|\bобнал[а]?\s+(?:бабок|денег|крипт\w+|кэша)"),
+    # "easy work / easy money" lures in every language, plus targeting of students and teens
+    ("fake_job", MEDIUM, r"жеңіл\s+(?:жұмыс|табыс|ақша)|оңай\s+(?:табыс|ақша|жұмыс)|жеңил\s+(?:жумуш|киреше|акча)|оңой\s+(?:киреше|акча|жумуш)|\b(?:oson|yengil)\s+(?:ish|pul|daromad)|кори\s+осон|пули\s+осон|даромади\s+осон|aňsat\s+(?:iş|pul|girdeji)"),
+    ("fake_job", MEDIUM, r"(?:студент\w*|школьник\w*|подростк\w*|студенттерге|мектеп\w*\s+оқушыларына|студентлерге|talabalar\w*|донишҷӯён|talyplar\w*)\s+(?:\w+\s+){0,3}(?:работ\w+|заработ\w+|жұмыс|жумуш|ish\b|кор\b|iş\b|арналған|ылайыктуу|mos)|(?:работ\w+|жұмыс|жумуш)\s+(?:для|дл[яи])\s+(?:студент\w*|школьник\w*|подростк\w*)|работ\w+\s+16\+|work\s+for\s+(?:students|teens)"),
+    ("fake_job", MEDIUM, r"(?:ish|кор\w*|iş|жумуш|жұмыс)\s+(?:\w+\s+){0,2}(?:talabalar\w*|донишҷӯён|talyplar\w*|студент\w*|школьник\w*)"),
     ("fake_job", MEDIUM, r"л[её]гк\w+\s+(?:работ\w+|заработ\w+|деньг\w+)|easy\s+(?:job|work)"),
 ]

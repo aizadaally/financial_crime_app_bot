@@ -82,3 +82,20 @@ def test_similar_normal_messages_stay_below_ban(text):
 def test_user_group_message_with_crypto_and_laundering():
     v = d.analyze("Дети кто хочет крипту и отмыв бабок")
     assert v.score >= 4 and v.criminal_hit == "laundering", (v.score, v.reasons)
+
+
+EASY_WORK = [
+    "Жеңіл жұмыс Студенттерге арналған.", "Жеңил жумуш студенттерге ылайыктуу", "Oson ish talabalar uchun",
+    "Кори осон барои донишҷӯён", "Aňsat iş talyplar üçin", "Легкая работа для студентов",
+]
+
+
+@pytest.mark.parametrize("text", EASY_WORK)
+def test_easy_work_for_students_in_every_language(text):
+    v = d.analyze(text)
+    assert v.score >= 3 or v.is_spam(3), (text, v.score, v.reasons)
+
+
+@pytest.mark.parametrize("text", ["Студентам скидка 20% в кафе", "Қайырлы таң, жұмыс қалай?", "Работа сегодня была тяжёлая"])
+def test_easy_work_rules_do_not_hit_normal_chat(text):
+    assert d.analyze(text).score == 0, text
