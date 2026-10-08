@@ -29,7 +29,7 @@ def make_msg(text=SPAM, user_id=1, chat_id=-100, sender_chat=None, is_bot=False)
 def make_bot(status="member"):
     bot = MagicMock()
     bot.get_chat_member = AsyncMock(return_value=NS(status=status))
-    for name in ("ban_chat_member", "send_message", "leave_chat"):
+    for name in ("ban_chat_member", "restrict_chat_member", "send_message", "leave_chat"):
         setattr(bot, name, AsyncMock())
     return bot
 
@@ -106,3 +106,26 @@ def test_delete_delay_waits_then_acts(monkeypatch):
     assert slept == [3.0]
     msg.delete.assert_awaited_once()
     bot.ban_chat_member.assert_awaited_once()
+
+
+def test_mute_restricts_instead_of_banning():
+    msg, bot = make_msg(), make_bot()
+    run(msg, bot, make_cfg(punishment="mute"))
+    msg.delete.assert_awaited_once()
+    bot.ban_chat_member.assert_not_awaited()
+    kw = bot.restrict_chat_member.await_args.kwargs
+    assert kw["permissions"].can_send_messages is False and kw["until_date"] is None
+
+
+def test_temporary_ban_sets_until_date():
+    from datetime import datetime, timedelta, timezone
+    msg, bot = make_msg(), make_bot()
+    run(msg, bot, make_cfg(punish_minutes=60))
+    until = bot.ban_chat_member.await_args.kwargs["until_date"]
+    assert timedelta(minutes=59) < until - datetime.now(timezone.utc) < timedelta(minutes=61)
+
+
+def test_default_ban_is_permanent():
+    msg, bot = make_msg(), make_bot()
+    run(msg, bot, make_cfg())
+    assert bot.ban_chat_member.await_args.kwargs["until_date"] is None

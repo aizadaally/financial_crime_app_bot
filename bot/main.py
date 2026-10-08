@@ -3,10 +3,11 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from datetime import datetime, timedelta, timezone
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ChatMemberStatus, ChatType
-from aiogram.types import LinkPreviewOptions, Message
+from aiogram.types import ChatPermissions, LinkPreviewOptions, Message
 
 from .config import Config, load_config
 from .detector import Detector
@@ -32,6 +33,26 @@ def extract(message: Message) -> tuple[str, list[str]]:
     if message.reply_markup and getattr(message.reply_markup, "inline_keyboard", None):
         urls += [b.url for row in message.reply_markup.inline_keyboard for b in row if b.url]
     return text, urls
+
+
+MUTED = ChatPermissions(
+    can_send_messages=False, can_send_audios=False, can_send_documents=False, can_send_photos=False,
+    can_send_videos=False, can_send_video_notes=False, can_send_voice_notes=False, can_send_polls=False,
+    can_send_other_messages=False, can_add_web_page_previews=False,
+)
+
+
+async def punish(bot: Bot, cfg: Config, chat_id: int, user_id: int) -> None:
+    """ban (default) removes the user; mute keeps them in the group but unable to write.
+    With PUNISH_MINUTES > 0 Telegram lifts the punishment by itself when the time is up."""
+    until = datetime.now(timezone.utc) + timedelta(minutes=cfg.punish_minutes) if cfg.punish_minutes else None
+    try:
+        if cfg.punishment == "mute":
+            await bot.restrict_chat_member(chat_id, user_id, permissions=MUTED, until_date=until)
+        else:
+            await bot.ban_chat_member(chat_id, user_id, until_date=until, revoke_messages=True)
+    except Exception:
+        log.exception("%s failed (does the bot have the 'ban users' right?)", cfg.punishment)
 
 
 async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector, classifier=None) -> None:
@@ -93,14 +114,11 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector, cl
         except Exception:
             log.exception("delete failed (does the bot have 'delete messages' right?)")
         if action == "ban":
-            try:
-                await bot.ban_chat_member(message.chat.id, user.id, revoke_messages=True)
-            except Exception:
-                log.exception("ban failed (does the bot have 'ban users' right?)")
+            await punish(bot, cfg, message.chat.id, user.id)
 
     if cfg.log_chat_id:
         snippet = defang((text[:300] + "…") if len(text) > 300 else text)
-        verb = {"ban": "Banned", "delete": "Deleted message of"}[action]
+        verb = {"ban": "Muted" if cfg.punishment == "mute" else "Banned", "delete": "Deleted message of"}[action]
         head = f"🧪 WOULD DO (dry run): {verb}" if cfg.dry_run else f"🚫 {verb}"
         report = (
             f"{head} {defang(user.full_name)} (id {user.id}) in {defang(str(message.chat.title or message.chat.id))}\n"

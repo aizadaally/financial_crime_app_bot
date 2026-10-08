@@ -31,6 +31,12 @@ in all 7 languages. Result: **high confidence → delete + ban**, **medium → d
 If the AI is down, slow, rate-capped or answers badly, the bot silently falls back to rules only.
 Privacy: only the message text is sent (never names or ids); tell your members. See `SECURITY.md`.
 
+## Ban, mute or temporary
+`PUNISHMENT=ban` (default) removes the sender; `PUNISHMENT=mute` keeps them in the group but unable to write.
+`PUNISH_MINUTES=60` makes either one lift automatically after an hour. Once a person has been banned, Telegram
+may stop admins re-adding them (they must rejoin via an invite link and, if "Approve New Members" is on, be approved).
+Mute avoids this: an admin just lifts the restriction in the group's member list.
+
 ## Run
 1. Create a bot with @BotFather, **disable privacy mode** (`/setprivacy` → Disable).
 2. Add it to your group as admin with *Delete messages* and *Ban users* rights.

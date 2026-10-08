@@ -27,6 +27,8 @@ class Config:
     ai_mode: str = "suspicious"
     ai_model: str = "claude-opus-5-5"
     ai_max_calls_per_minute: int = 30
+    punishment: str = "ban"
+    punish_minutes: int = 0
 
 
 def load_config() -> Config:
@@ -55,6 +57,15 @@ def load_config() -> Config:
         raise SystemExit("AI_MAX_CALLS_PER_MINUTE must be a number")
     if ai_enabled and not os.getenv("ANTHROPIC_API_KEY", "").strip():
         raise SystemExit("AI_ENABLED=true needs ANTHROPIC_API_KEY in .env (or set AI_ENABLED=false)")
+    punishment = (os.getenv("PUNISHMENT", "ban").strip().lower() or "ban")
+    if punishment not in {"ban", "mute"}:
+        raise SystemExit("PUNISHMENT must be ban or mute")
+    try:
+        punish_minutes = int(os.getenv("PUNISH_MINUTES", "0") or 0)
+    except ValueError:
+        raise SystemExit("PUNISH_MINUTES must be a whole number of minutes")
+    if not (punish_minutes == 0 or 1 <= punish_minutes <= 366 * 24 * 60):
+        raise SystemExit("PUNISH_MINUTES must be 0 (permanent) or between 1 and 527040")
     if ban_score < 1:
         raise SystemExit("BAN_SCORE must be at least 1")
     return Config(
@@ -65,6 +76,8 @@ def load_config() -> Config:
         whitelist_user_ids=whitelist,
         allowed_chat_ids=allowed_chats,
         delete_delay=delete_delay,
+        punishment=punishment,
+        punish_minutes=punish_minutes,
         ai_enabled=ai_enabled,
         ai_mode=ai_mode,
         ai_model=os.getenv("AI_MODEL", "").strip() or "claude-opus-5-5",

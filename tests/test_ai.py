@@ -129,7 +129,7 @@ def make_msg(text, user_id=7):
 def make_bot(status="member"):
     bot = MagicMock()
     bot.get_chat_member = AsyncMock(return_value=NS(status=status))
-    for name in ("ban_chat_member", "send_message", "leave_chat"):
+    for name in ("ban_chat_member", "restrict_chat_member", "send_message", "leave_chat"):
         setattr(bot, name, AsyncMock())
     return bot
 
