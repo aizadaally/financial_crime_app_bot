@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import subprocess
+import sys
 import unicodedata
 from dataclasses import dataclass, field
 
@@ -9,6 +12,14 @@ from . import rules
 
 _APOSTROPHES = dict.fromkeys(map(ord, "ʻʼ’‘´ʹ"), "'")
 _ZERO_WIDTH = dict.fromkeys(map(ord, "​‌‍⁠﻿­"), None)
+
+
+MAX_TEXT = 4096  # Telegram's own message limit; anything longer is cut, bounding regex work
+MAX_URLS = 50
+MAX_URL_LEN = 2048
+MAX_EXTRA_RULES = 200
+MAX_PATTERN_LEN = 300
+MAX_RULES_FILE_BYTES = 100_000
 
 
 @dataclass
@@ -36,6 +47,24 @@ def variants(text: str) -> list[str]:
     return list(dict.fromkeys(out))
 
 
+_NESTED_QUANTIFIER = re.compile(r"\([^()]*[+*}][^()]*\)\s*[+*{]")
+_PROBE_CODE = (
+    "import re,sys;rx=re.compile(sys.stdin.read(),re.I)\n"
+    "for p in ('a'*3000+'!','a '*1500+'!','а'*3000+'!','.'*3000+'!','ab'*1500+'!'): rx.search(p)"
+)
+
+
+def _assert_regex_safe(pattern: str) -> None:
+    """Reject user-supplied regexes that could stall the bot (catastrophic backtracking)."""
+    re.compile(pattern)  # syntax check
+    if _NESTED_QUANTIFIER.search(pattern):
+        raise ValueError(f"extra rule has a nested quantifier (ReDoS risk): {pattern[:60]}")
+    try:  # run in a throwaway process so a runaway pattern cannot hang us
+        subprocess.run([sys.executable, "-I", "-c", _PROBE_CODE], input=pattern, text=True, timeout=2, check=True, capture_output=True)
+    except subprocess.TimeoutExpired:
+        raise ValueError(f"extra rule is too slow (ReDoS risk): {pattern[:60]}") from None
+
+
 class Detector:
     def __init__(self, allowed_domains: set[str] | None = None, extra_rules_file: str | None = None):
         self.allowed = {d.lower().lstrip("@") for d in (allowed_domains or set())}
@@ -48,10 +77,20 @@ class Detector:
 
     def _load_extra(self, path: str) -> None:
         """JSON: {"keywords": [{"category": "x", "weight": 3, "pattern": "..."}]}"""
+        if os.path.getsize(path) > MAX_RULES_FILE_BYTES:
+            raise ValueError("extra rules file is too large")
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        for r in data.get("keywords", []):
-            self.keyword_rules.append((r.get("category", "custom"), int(r.get("weight", 3)), re.compile(r["pattern"], re.I)))
+        items = data.get("keywords", [])
+        if len(items) > MAX_EXTRA_RULES:
+            raise ValueError("too many extra rules")
+        for r in items:
+            pattern = str(r["pattern"])
+            if len(pattern) > MAX_PATTERN_LEN:
+                raise ValueError("extra rule pattern too long")
+            weight = max(0, min(int(r.get("weight", 3)), 5))
+            _assert_regex_safe(pattern)
+            self.keyword_rules.append((str(r.get("category", "custom"))[:30], weight, re.compile(pattern, re.I)))
 
     def _is_allowed(self, name: str) -> bool:
         return name.lower() in self.allowed
@@ -60,9 +99,10 @@ class Detector:
         v = Verdict()
         if not text and not link_urls:
             return v
-        blob = text or ""
+        blob = (text or "")[:MAX_TEXT]
         if link_urls:
-            blob += "\n" + "\n".join(link_urls)
+            blob += "\n" + "\n".join(u[:MAX_URL_LEN] for u in link_urls[:MAX_URLS])
+        blob = blob[: MAX_TEXT * 2]  # hard cap on total work per message
 
         seen: set[str] = set()
         keyword_hit = False

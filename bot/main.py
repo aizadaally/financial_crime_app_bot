@@ -2,16 +2,26 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ChatMemberStatus, ChatType
-from aiogram.types import Message
+from aiogram.types import LinkPreviewOptions, Message
 
 from .config import Config, load_config
 from .detector import Detector
 
 log = logging.getLogger("spambot")
 ADMIN_STATUSES = {ChatMemberStatus.CREATOR, ChatMemberStatus.ADMINISTRATOR}
+
+
+def defang(text: str) -> str:
+    """Make links/mentions in a report non-clickable so admins can't tap into a criminal chat by accident."""
+    text = re.sub(r"(?i)https?://", "hxxp://", text)
+    text = re.sub(r"(?i)\b(t(?:elegram)?)\.(me|dog)\b", r"\1[.]\2", text)
+    text = re.sub(r"(?i)tg://", "tg[:]//", text)
+    text = re.sub(r"(?i)\bwww\.", "www[.]", text)
+    return text.replace("@", "(at)")
 
 
 def extract(message: Message) -> tuple[str, list[str]]:
@@ -25,6 +35,14 @@ def extract(message: Message) -> tuple[str, list[str]]:
 
 
 async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) -> None:
+    if cfg.allowed_chat_ids and message.chat.id not in cfg.allowed_chat_ids:
+        # Someone added the bot to a chat the owner did not approve: do nothing there and leave.
+        log.warning("added to unapproved chat %s, leaving", message.chat.id)
+        try:
+            await bot.leave_chat(message.chat.id)
+        except Exception:
+            log.exception("could not leave chat")
+        return
     user = message.from_user
     if user is None or user.is_bot or user.id in cfg.whitelist_user_ids:
         return
@@ -37,7 +55,11 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) ->
     if not verdict.is_spam(cfg.ban_score):
         return
 
-    member = await bot.get_chat_member(message.chat.id, user.id)
+    try:
+        member = await bot.get_chat_member(message.chat.id, user.id)
+    except Exception:
+        log.exception("could not verify sender status; not acting")
+        return  # fail safe: never ban someone we could not check
     if member.status in ADMIN_STATUSES:
         return
 
@@ -53,19 +75,23 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) ->
             log.exception("ban failed (does the bot have 'ban users' right?)")
 
     if cfg.log_chat_id:
-        snippet = (text[:300] + "…") if len(text) > 300 else text
+        snippet = defang((text[:300] + "…") if len(text) > 300 else text)
         report = (
-            f"{'🧪 WOULD BAN (dry run)' if cfg.dry_run else '🚫 Banned'} {user.full_name} (id {user.id}) in {message.chat.title or message.chat.id}\n"
-            f"Score {verdict.score}: {', '.join(verdict.reasons)}\n\n{snippet}"
+            f"{'🧪 WOULD BAN (dry run)' if cfg.dry_run else '🚫 Banned'} {defang(user.full_name)} (id {user.id}) in {defang(str(message.chat.title or message.chat.id))}\n"
+            f"Score {verdict.score}: {defang(', '.join(verdict.reasons))}\n\n{snippet}"
         )
         try:
-            await bot.send_message(cfg.log_chat_id, report, parse_mode=None)
+            await bot.send_message(
+                cfg.log_chat_id, report, parse_mode=None,
+                link_preview_options=LinkPreviewOptions(is_disabled=True),
+            )
         except Exception:
             log.exception("could not send report")
 
 
 async def run() -> None:
     logging.basicConfig(level=logging.INFO)
+    logging.getLogger("aiogram").setLevel(logging.WARNING)  # keep request details out of logs
     cfg = load_config()
     detector = Detector(cfg.allowed_domains, cfg.extra_rules_file)
     bot = Bot(cfg.token)

@@ -27,11 +27,12 @@ Rules live in `bot/rules.py`. Add your own without code changes via
 2. Add it to your group as admin with *Delete messages* and *Ban users* rights.
 3. `cp .env.example .env`, fill in `BOT_TOKEN`, then:
 ```
-pip install -r requirements.txt
+pip install -r requirements.txt   # (requirements-dev.txt adds pytest)
 python -m bot.main
 ```
 Set `DRY_RUN=true` to only log and report (no deleting or banning) while testing.
-Tests: `pytest`.
+See `GO_LIVE.md` (step-by-step launch) and `SECURITY.md` (threat model).
+Tests: `pip install -r requirements-dev.txt && pytest`.
 
 ## Tuning
 Weights: strong=3, medium=2, weak=1; invite link=2, t.me link=1. Raise
