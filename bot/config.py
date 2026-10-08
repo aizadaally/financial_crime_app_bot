@@ -23,6 +23,10 @@ class Config:
     allowed_chat_ids: set[int]
     log_all: bool = False
     delete_delay: float = 0.0
+    ai_enabled: bool = False
+    ai_mode: str = "suspicious"
+    ai_model: str = "claude-opus-5-5"
+    ai_max_calls_per_minute: int = 30
 
 
 def load_config() -> Config:
@@ -41,6 +45,16 @@ def load_config() -> Config:
         delete_delay = max(0.0, min(float(os.getenv("DELETE_DELAY_SECONDS", "0") or 0), 30.0))
     except ValueError as e:
         raise SystemExit(f"Invalid number in .env: {e}")
+    ai_enabled = os.getenv("AI_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
+    ai_mode = (os.getenv("AI_MODE", "suspicious").strip().lower() or "suspicious")
+    if ai_mode not in {"suspicious", "borderline", "all"}:
+        raise SystemExit("AI_MODE must be suspicious, borderline or all")
+    try:
+        ai_max_calls = max(1, int(os.getenv("AI_MAX_CALLS_PER_MINUTE", "30") or 30))
+    except ValueError:
+        raise SystemExit("AI_MAX_CALLS_PER_MINUTE must be a number")
+    if ai_enabled and not os.getenv("ANTHROPIC_API_KEY", "").strip():
+        raise SystemExit("AI_ENABLED=true needs ANTHROPIC_API_KEY in .env (or set AI_ENABLED=false)")
     if ban_score < 1:
         raise SystemExit("BAN_SCORE must be at least 1")
     return Config(
@@ -51,6 +65,10 @@ def load_config() -> Config:
         whitelist_user_ids=whitelist,
         allowed_chat_ids=allowed_chats,
         delete_delay=delete_delay,
+        ai_enabled=ai_enabled,
+        ai_mode=ai_mode,
+        ai_model=os.getenv("AI_MODEL", "").strip() or "claude-opus-5-5",
+        ai_max_calls_per_minute=ai_max_calls,
         log_all=os.getenv("LOG_ALL", "").strip().lower() in {"1", "true", "yes", "on"},
         extra_rules_file=os.getenv("EXTRA_RULES_FILE") or None,
         dry_run=os.getenv("DRY_RUN", "").strip().lower() in {"1", "true", "yes", "on"},

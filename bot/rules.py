@@ -72,5 +72,7 @@ from .rules_regional import JOIN_CTA_RULES as _RJ, KEYWORD_RULES as _RK  # noqa:
 
 from .rules_scams import KEYWORD_RULES as _RS  # noqa: E402
 
-KEYWORD_RULES = KEYWORD_RULES + _RK + _RS
+from .rules_financial import KEYWORD_RULES as _RF  # noqa: E402
+
+KEYWORD_RULES = KEYWORD_RULES + _RK + _RS + _RF
 JOIN_CTA_RULES = JOIN_CTA_RULES + _RJ

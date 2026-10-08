@@ -23,6 +23,14 @@ Rules live in `bot/rules.py`. Add your own without code changes via
 {"keywords": [{"category": "custom", "weight": 3, "pattern": "your regex"}]}
 ```
 
+## Smart AI layer (optional)
+Rules are fast and free but can't know every scam wording. With `AI_ENABLED=true` and an
+`ANTHROPIC_API_KEY`, messages that look suspicious (rules flagged them, or they contain a
+link / @contact / phone number / money amount) are also checked by Claude, which understands meaning
+in all 7 languages. Result: **high confidence → delete + ban**, **medium → delete only**, low/not a scam → nothing.
+If the AI is down, slow, rate-capped or answers badly, the bot silently falls back to rules only.
+Privacy: only the message text is sent (never names or ids); tell your members. See `SECURITY.md`.
+
 ## Run
 1. Create a bot with @BotFather, **disable privacy mode** (`/setprivacy` → Disable).
 2. Add it to your group as admin with *Delete messages* and *Ban users* rights.

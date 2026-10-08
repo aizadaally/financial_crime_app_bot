@@ -34,7 +34,7 @@ def extract(message: Message) -> tuple[str, list[str]]:
     return text, urls
 
 
-async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) -> None:
+async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector, classifier=None) -> None:
     if cfg.allowed_chat_ids and message.chat.id not in cfg.allowed_chat_ids:
         # Someone added the bot to a chat the owner did not approve: do nothing there and leave.
         log.warning("added to unapproved chat %s, leaving", message.chat.id)
@@ -54,7 +54,13 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) ->
     verdict = detector.analyze(text, urls)
     if cfg.log_all:
         log.info("saw message in chat %s from user %s: score=%s", message.chat.id, user.id, verdict.score)
-    if not verdict.is_spam(cfg.ban_score):
+    rule_ban = verdict.is_spam(cfg.ban_score)
+    ask_ai = (
+        not rule_ban
+        and classifier is not None
+        and classifier.worth_asking(text, urls, verdict.score, cfg.ban_score)
+    )
+    if not rule_ban and not ask_ai:
         return
 
     try:
@@ -65,7 +71,20 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) ->
     if member.status in ADMIN_STATUSES:
         return
 
-    log.info("%sspam from %s in %s score=%s %s", "[DRY RUN] " if cfg.dry_run else "", user.id, message.chat.id, verdict.score, verdict.reasons)
+    action = "ban" if rule_ban else None
+    reasons = list(verdict.reasons)
+    if ask_ai:
+        ai = await classifier.classify(text)
+        if cfg.log_all:
+            log.info("AI verdict for user %s: %s", user.id, ai)
+        if ai is not None and ai.is_scam and ai.confidence != "low":
+            action = "ban" if ai.confidence == "high" else "delete"  # medium: remove the post, keep the user
+            reasons.append(f"ai:{ai.category}/{ai.confidence}: {ai.reason}")
+    if action is None:
+        return
+
+    log.info("%s%s from %s in %s score=%s %s", "[DRY RUN] " if cfg.dry_run else "", action, user.id,
+             message.chat.id, verdict.score, reasons)
     if not cfg.dry_run:
         if cfg.delete_delay:
             await asyncio.sleep(cfg.delete_delay)  # demo mode: let the message stay visible briefly
@@ -73,16 +92,19 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) ->
             await message.delete()
         except Exception:
             log.exception("delete failed (does the bot have 'delete messages' right?)")
-        try:
-            await bot.ban_chat_member(message.chat.id, user.id, revoke_messages=True)
-        except Exception:
-            log.exception("ban failed (does the bot have 'ban users' right?)")
+        if action == "ban":
+            try:
+                await bot.ban_chat_member(message.chat.id, user.id, revoke_messages=True)
+            except Exception:
+                log.exception("ban failed (does the bot have 'ban users' right?)")
 
     if cfg.log_chat_id:
         snippet = defang((text[:300] + "…") if len(text) > 300 else text)
+        verb = {"ban": "Banned", "delete": "Deleted message of"}[action]
+        head = f"🧪 WOULD DO (dry run): {verb}" if cfg.dry_run else f"🚫 {verb}"
         report = (
-            f"{'🧪 WOULD BAN (dry run)' if cfg.dry_run else '🚫 Banned'} {defang(user.full_name)} (id {user.id}) in {defang(str(message.chat.title or message.chat.id))}\n"
-            f"Score {verdict.score}: {defang(', '.join(verdict.reasons))}\n\n{snippet}"
+            f"{head} {defang(user.full_name)} (id {user.id}) in {defang(str(message.chat.title or message.chat.id))}\n"
+            f"Score {verdict.score}: {defang('; '.join(reasons))}\n\n{snippet}"
         )
         try:
             await bot.send_message(
@@ -98,6 +120,11 @@ async def run() -> None:
     logging.getLogger("aiogram").setLevel(logging.WARNING)  # keep request details out of logs
     cfg = load_config()
     detector = Detector(cfg.allowed_domains, cfg.extra_rules_file)
+    classifier = None
+    if cfg.ai_enabled:
+        from .ai_classifier import AIClassifier
+
+        classifier = AIClassifier(cfg.ai_model, cfg.ai_mode, cfg.ai_max_calls_per_minute)
     bot = Bot(cfg.token)
     dp = Dispatcher()
     groups = F.chat.type.in_({ChatType.GROUP, ChatType.SUPERGROUP})
@@ -105,11 +132,12 @@ async def run() -> None:
     @dp.message(groups)
     @dp.edited_message(groups)
     async def _on_message(message: Message) -> None:
-        await handle(message, bot, cfg, detector)
+        await handle(message, bot, cfg, detector, classifier)
 
     me = await bot.get_me()
-    log.info("Started as @%s | dry_run=%s | ban_score=%s | log_all=%s. Waiting for group messages...",
-             me.username, cfg.dry_run, cfg.ban_score, cfg.log_all)
+    log.info("Started as @%s | dry_run=%s | ban_score=%s | log_all=%s | ai=%s%s. Waiting for group messages...",
+             me.username, cfg.dry_run, cfg.ban_score, cfg.log_all,
+             "on" if classifier else "off", f" ({cfg.ai_model}, {cfg.ai_mode})" if classifier else "")
     await dp.start_polling(bot, allowed_updates=["message", "edited_message"])
 
 
