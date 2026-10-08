@@ -31,6 +31,9 @@ in all 7 languages. Result: **high confidence → delete + ban**, **medium → d
 If the AI is down, slow, rate-capped or answers badly, the bot silently falls back to rules only.
 Privacy: only the message text is sent (never names or ids); tell your members. See `SECURITY.md`.
 
+## Context across messages
+A scam split into several messages is judged as a whole: suspicious messages (score 2+) from the same person in the last `CONTEXT_WINDOW_MINUTES` (default 10) are added together. Ordinary chat never builds up, and nothing is stored on disk.
+
 ## Strict mode
 `STRICT_MODE=true` bans any message whose subject is criminal (one signal is enough), but spares text that reads like a warning, news or advice ("будьте осторожны", "полиция задержала…").
 

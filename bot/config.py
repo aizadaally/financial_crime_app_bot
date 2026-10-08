@@ -29,6 +29,7 @@ class Config:
     ai_max_calls_per_minute: int = 30
     punishment: str = "ban"
     strict_mode: bool = False
+    context_window_minutes: int = 10
     punish_minutes: int = 0
 
 
@@ -67,6 +68,10 @@ def load_config() -> Config:
         raise SystemExit("PUNISH_MINUTES must be a whole number of minutes")
     if not (punish_minutes == 0 or 1 <= punish_minutes <= 366 * 24 * 60):
         raise SystemExit("PUNISH_MINUTES must be 0 (permanent) or between 1 and 527040")
+    try:
+        context_window = max(0, min(int(os.getenv("CONTEXT_WINDOW_MINUTES", "10") or 0), 120))
+    except ValueError:
+        raise SystemExit("CONTEXT_WINDOW_MINUTES must be a whole number (0 = off)")
     if ban_score < 1:
         raise SystemExit("BAN_SCORE must be at least 1")
     return Config(
@@ -77,6 +82,7 @@ def load_config() -> Config:
         whitelist_user_ids=whitelist,
         allowed_chat_ids=allowed_chats,
         delete_delay=delete_delay,
+        context_window_minutes=context_window,
         strict_mode=os.getenv("STRICT_MODE", "").strip().lower() in {"1", "true", "yes", "on"},
         punishment=punishment,
         punish_minutes=punish_minutes,

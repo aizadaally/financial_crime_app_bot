@@ -11,6 +11,7 @@ from aiogram.types import ChatPermissions, LinkPreviewOptions, Message
 
 from .config import Config, load_config
 from .detector import Detector, is_warning_context
+from .history import ScoreHistory
 
 log = logging.getLogger("spambot")
 ADMIN_STATUSES = {ChatMemberStatus.CREATOR, ChatMemberStatus.ADMINISTRATOR}
@@ -55,7 +56,7 @@ async def punish(bot: Bot, cfg: Config, chat_id: int, user_id: int) -> None:
         log.exception("%s failed (does the bot have the 'ban users' right?)", cfg.punishment)
 
 
-async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector, classifier=None) -> None:
+async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector, classifier=None, history=None) -> None:
     if cfg.allowed_chat_ids and message.chat.id not in cfg.allowed_chat_ids:
         # Someone added the bot to a chat the owner did not approve: do nothing there and leave.
         log.warning("added to unapproved chat %s, leaving", message.chat.id)
@@ -77,7 +78,13 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector, cl
         log.info("saw message in chat %s from user %s: score=%s", message.chat.id, user.id, verdict.score)
     # Text that warns about crime (news, advice) needs a clearly higher score before it is punished.
     warning = is_warning_context(text)
-    rule_ban = verdict.is_spam(cfg.ban_score + (2 if warning else 0))
+    total = verdict.score
+    if history is not None:
+        # context: add this person's earlier suspicious messages from the last few minutes
+        total = history.total(message.chat.id, user.id, verdict.score)
+        if total > verdict.score:
+            verdict.reasons.append(f"context:+{total - verdict.score} from earlier messages")
+    rule_ban = total >= cfg.ban_score + (2 if warning else 0)
     if not rule_ban and cfg.strict_mode:
         # Strict: any criminal subject bans, unless the text reads like a warning, news or advice.
         category = verdict.criminal_hit
@@ -146,6 +153,7 @@ async def run() -> None:
     logging.getLogger("aiogram").setLevel(logging.WARNING)  # keep request details out of logs
     cfg = load_config()
     detector = Detector(cfg.allowed_domains, cfg.extra_rules_file)
+    history = ScoreHistory(cfg.context_window_minutes * 60) if cfg.context_window_minutes else None
     classifier = None
     if cfg.ai_enabled:
         from .ai_classifier import AIClassifier
@@ -158,7 +166,7 @@ async def run() -> None:
     @dp.message(groups)
     @dp.edited_message(groups)
     async def _on_message(message: Message) -> None:
-        await handle(message, bot, cfg, detector, classifier)
+        await handle(message, bot, cfg, detector, classifier, history)
 
     me = await bot.get_me()
     log.info("Started as @%s | dry_run=%s | ban_score=%s | log_all=%s | strict=%s | ai=%s%s. Waiting for group messages...",
