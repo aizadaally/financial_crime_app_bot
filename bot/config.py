@@ -18,6 +18,7 @@ class Config:
     allowed_domains: set[str]
     whitelist_user_ids: set[int]
     extra_rules_file: str | None
+    dry_run: bool
 
 
 def load_config() -> Config:
@@ -33,4 +34,5 @@ def load_config() -> Config:
         allowed_domains=_csv("ALLOWED_DOMAINS"),
         whitelist_user_ids={int(x) for x in _csv("WHITELIST_USER_IDS")},
         extra_rules_file=os.getenv("EXTRA_RULES_FILE") or None,
+        dry_run=os.getenv("DRY_RUN", "").strip().lower() in {"1", "true", "yes", "on"},
     )

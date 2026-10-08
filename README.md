@@ -30,6 +30,7 @@ Rules live in `bot/rules.py`. Add your own without code changes via
 pip install -r requirements.txt
 python -m bot.main
 ```
+Set `DRY_RUN=true` to only log and report (no deleting or banning) while testing.
 Tests: `pytest`.
 
 ## Tuning

@@ -41,20 +41,21 @@ async def handle(message: Message, bot: Bot, cfg: Config, detector: Detector) ->
     if member.status in ADMIN_STATUSES:
         return
 
-    log.info("spam from %s in %s score=%s %s", user.id, message.chat.id, verdict.score, verdict.reasons)
-    try:
-        await message.delete()
-    except Exception:
-        log.exception("delete failed (does the bot have 'delete messages' right?)")
-    try:
-        await bot.ban_chat_member(message.chat.id, user.id, revoke_messages=True)
-    except Exception:
-        log.exception("ban failed (does the bot have 'ban users' right?)")
+    log.info("%sspam from %s in %s score=%s %s", "[DRY RUN] " if cfg.dry_run else "", user.id, message.chat.id, verdict.score, verdict.reasons)
+    if not cfg.dry_run:
+        try:
+            await message.delete()
+        except Exception:
+            log.exception("delete failed (does the bot have 'delete messages' right?)")
+        try:
+            await bot.ban_chat_member(message.chat.id, user.id, revoke_messages=True)
+        except Exception:
+            log.exception("ban failed (does the bot have 'ban users' right?)")
 
     if cfg.log_chat_id:
         snippet = (text[:300] + "…") if len(text) > 300 else text
         report = (
-            f"🚫 Banned {user.full_name} (id {user.id}) in {message.chat.title or message.chat.id}\n"
+            f"{'🧪 WOULD BAN (dry run)' if cfg.dry_run else '🚫 Banned'} {user.full_name} (id {user.id}) in {message.chat.title or message.chat.id}\n"
             f"Score {verdict.score}: {', '.join(verdict.reasons)}\n\n{snippet}"
         )
         try:
