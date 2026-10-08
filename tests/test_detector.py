@@ -67,3 +67,30 @@ def test_regional_spam(text):
 def test_regional_ham(text):
     v = d.analyze(text)
     assert not v.is_spam(THRESHOLD), (v.score, v.reasons)
+
+
+USER_TEST_SPAM = [
+    "Продаю наркоту и делаю жекский отмыв бабок через руссию\nКто хочет дам миллион сом через вашу карту",
+    "Продаю наркотики, закладки по городу, пиши в лс",
+    "Делаю отмыв денег, дам 100000 сом через вашу карту",
+    "Selling cocaine and mdma, dm me, join t.me/+xyz98765",
+]
+USER_TEST_HAM = [
+    "Борьба с наркотиками и отмыванием денег в Кыргызстане - новая статья",
+    "Продаю велосипед, пишите в лс",
+    "Куплю телефон недорого",
+    "Можно оплатить через вашу карту или наличными?",
+    "Полиция задержала продавцов наркотиков",
+]
+
+
+@pytest.mark.parametrize("text", USER_TEST_SPAM)
+def test_user_scenarios_spam(text):
+    v = d.analyze(text)
+    assert v.is_spam(THRESHOLD), (v.score, v.reasons)
+
+
+@pytest.mark.parametrize("text", USER_TEST_HAM)
+def test_user_scenarios_ham(text):
+    v = d.analyze(text)
+    assert not v.is_spam(THRESHOLD), (v.score, v.reasons)
