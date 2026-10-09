@@ -61,7 +61,7 @@ CARD_DATA = _alt(
     r"kart\w*\s+maglumat\w*", r"maglumat\w*\s+kart\w*",
 )
 SEND_VERB = _alt(
-    r"скин\w+", r"отправ\w+", r"пришл\w+", r"присла\w+", r"дай\w*", r"сообщи\w*", r"назов\w+", r"назови\w*",
+    r"скин\w*", r"отправ\w+", r"пришл\w+", r"присла\w+", r"дай\w*", r"сообщи\w*", r"назов\w+", r"назови\w*",
     r"продиктуй\w*", r"сфоткай\w*", r"вышли\w*", r"кинь\w*", r"кидай\w*", r"скажи\w*",
     r"send", r"give", r"share", r"tell", r"provide", r"forward", r"dm",
     r"жібер\w*", r"таста\w*", r"айт\w*", r"бер\w*", r"жолда\w*",

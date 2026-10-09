@@ -8,6 +8,7 @@ import sys
 import unicodedata
 from dataclasses import dataclass, field
 
+from . import obfuscation as obf
 from . import rules
 
 _APOSTROPHES = dict.fromkeys(map(ord, "ʻʼ’‘´ʹ"), "'")
@@ -70,11 +71,31 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text)
 
 
+def _family(category: str) -> str:
+    """uz_dropper / kz_dropper / dropper are the same idea in different languages."""
+    return re.sub(r"^(?:uz|kz|kg|tj|tm|kk|ky|tg|tk)_", "", category)
+
+
 def variants(text: str) -> list[str]:
+    """The message as written, plus de-obfuscated readings (spaced letters, leetspeak, emoji between
+    letters, repeated letters, look-alike letters, Russian typed in Latin, Cyrillic Uzbek in Latin)."""
     base = normalize(text)
+    # keep double spaces as word breaks while joining spaced-out letters ("п р о д а ю  н а р к о т у")
+    spaced = re.sub(r"[ \t]{2,}", " \u00a6 ", unicodedata.normalize("NFKC", text).translate(_ZERO_WIDTH).lower())
+    clean = obf.join_spaced(obf.strip_symbols(spaced)).replace("\u00a6", " ")
+    clean = re.sub(r"\s+", " ", clean).strip()
     out = [base, base.translate(rules.CYR_TO_LAT), base.translate(rules.LAT_TO_CYR)]
-    # collapse single-letter separators: "к а р д и н г" -> "кардинг"
-    out.append(re.sub(r"(?<=\b\w)[\s.\-_*]+(?=\w\b)", "", base))
+    if clean != base:
+        out.append(clean)
+    out.append(obf.collapse_repeats(obf.strip_inner_punct(clean)))
+    deleeted = obf.deleet(obf.strip_inner_punct(clean))
+    out.append(deleeted)
+    out.append(deleeted.translate(rules.LAT_TO_CYR))
+    for source in (clean, deleeted):
+        for fn in (obf.translit_latin_to_cyrillic, obf.cyrillic_to_latin):
+            v = fn(source)
+            if v:
+                out.append(v)
     return list(dict.fromkeys(out))
 
 
@@ -137,8 +158,13 @@ class Detector:
 
         seen: set[str] = set()
         keyword_hit = False
-        for variant in variants(blob):
+        for index, variant in enumerate(variants(blob)):
+            # A disguised/transliterated reading may add NEW kinds of evidence but must not count an idea
+            # a second time (the same word matched in two alphabets is still one word).
+            already = {_family(c) for c in v.categories} if index else set()
             for cat, weight, rx in self.keyword_rules:
+                if _family(cat) in already:
+                    continue
                 m = rx.search(variant)
                 if m and (cat, rx.pattern) not in seen:
                     seen.add((cat, rx.pattern))
